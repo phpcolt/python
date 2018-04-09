@@ -1,19 +1,20 @@
 #coding=utf-8
 '''
-
 查询全部数据，存入在list1中
 
 '''
+import os
 list1 = []
+list2 = []
+sign = ['=','>','<','like']
+li2 = ['id', 'name', 'age', 'phone', 'dept', 'enroll_date']
 def all_select():
     with open('sql.txt','r',encoding="utf-8") as f:
         for i in f.readlines():
             #print(i)
             s = i.strip().split(',')
             list1.append(s)
-
-
-
+        f.close()
 
 '''
 
@@ -23,6 +24,23 @@ def all_select():
 def judge(args):
     s = args.strip().split(' ')
     return s[0],s[1],s[len(s)-3],s[len(s)-2],s[len(s)-1]
+
+'''
+
+修改数据保存到文本中
+
+'''
+def sava(args):
+    with open('sql.txt','w',encoding="utf-8") as new_file:
+        for i in args:
+            s = ','.join(i)+'\n'
+            new_file.write(s)
+        new_file.close()
+    #os.renames('sql.txt','sql_bak.txt')
+    #os.renames('sql_bak.txt','sql.txt')
+
+
+
 
 
 '''
@@ -38,29 +56,46 @@ def add_stuff(args):
 '''
 def select(args):
     count = 0
-    if args[2] == 'age':
-        #count = 0
-        for i in list1:
-            if i[2] > args[4]:
-                count += 1
-                print(i[1],i[2])
-        print("影响了%s条记录"%count)
-    elif args[4] == '"IT"':
-        for i in list1:
-            if i[4] == 'IT':
-                count += 1
-                print(i)
-        print("影响了%s条记录" % count)
-    elif args[2] == 'enroll_date':
-        for i in list1:
-            img_list2 = i[len(i) - 1].split('-')
-            #print(img_list2)
-            if eval(args[4]) in img_list2:
-                count += 1
-                print(i)
+    tmp_list  = args.strip().split(' ')
+    print(tmp_list)
+
+    s1 = tmp_list.index('where')
+    temp = tmp_list[s1+1:]
+    if temp[1] in sign:
+        length = sign.index(temp[1])
+        fh = sign[length]
+        if temp[0] in li2:
+            s = li2.index(temp[0])
+            print(s)
+            for j in list1:
+                if fh == '>':
+                    zh = temp[2].replace('"','')
+                    if j[s] > zh:
+                        count += 1
+                        print(j)
+                elif fh == '<':
+                    zh = temp[2].replace('"', '')
+                    if j[s] < zh:
+                        count += 1
+                        print(j)
+                elif fh == '=':
+                    zh = temp[2].replace('"', '')
+                    if j[s] == zh:
+                        count += 1
+                        print(j)
+                elif fh == 'like':
+                    leb = len(j)
+                    date_list = j[leb-1].strip().split('-')
+                    zh = temp[2].replace('"', '')
+                    if zh in date_list:
+                        count += 1
+                        print(j)
+                else:
+                    print("哈哈哈")
+
         print('影响了%s条记录' % count)
-    else:
-        print("不支持其他查询")
+
+
 
 
 
@@ -69,15 +104,28 @@ def select(args):
 增加员工
 '''
 def add(args):
+    count = 0
+    temp_arr = []
+    del args[0:2]
+    args = ' '.join(args)
+    temp_list = args.strip().split(',')
+    s = len(list1)+1
+    temp_list.insert(0,str(s))
+    for i in list1:
+        temp_arr.append(i[3])
 
-    del args[0]
-    del args[1]
-    s = ','.join(args)
-    s1 = s.strip().split(',')
-    number = len(list1) +1
-    s1.insert(0,number)
-    list1.append(s1)
+    if temp_list[3] not in temp_arr:
+        count += 1
+        list1.append(temp_list)
+        sava(list1)
+    else:
+        print("电话号码已存在")
     print(list1)
+    print('影响了%s条记录' % count)
+
+
+
+
 
 
 '''
@@ -87,14 +135,37 @@ def add(args):
 def delete(args):
     count = 0
     s = args[len(args)-1]
-    s1 = s.strip().split('=')
-    print(s1)
-    for key,i in enumerate(list1):
-        if int(i[0]) == int(s1[1]):
-            del list1[key]
-    count += 1
+    strs = ','.join(s)
+    if strs[4] == '=':
+        temp_list = s.strip().split('=')
+        for key,value in enumerate(list1):
+            if key+1 == int(temp_list[1]):
+                count += 1
+                del list1[key]
+    elif strs[4] == '>':
+        temp_list = s.strip().split('>')
+        for key,value in enumerate(list1):
+            if key+1 == int(temp_list[1]):
+                count = len(list1) - (key+1)
+                del list1[key+1:]
+    elif strs[4] == '<':
+        temp_list = s.strip().split('<')
+        for key,value in enumerate(list1):
+            if key+1 == int(temp_list[1]):
+                count = key+1
+                del list1[0:key+1]
+    else:
+        print("输入语法错误")
+
+
+    # for key,i in enumerate(list1):
+    #     if int(i[0]) == int(s1[1]):
+    #         del list1[key]
+    # count += 1
+    sava(list1)
     print('影响了%s条记录' % count)
     print(list1)
+
 
 
 
@@ -102,25 +173,8 @@ def delete(args):
 更新员工信息
 '''
 def update(args):
-    # count = 0
-    # print(args)
-    # strs3 = args[len(args)-1]
-    # str2 = args[len(args)-2] + ' ' +args[len(args)-1]
-    # print(str2)
-    # for i in list1:
-    #     if eval(strs3) in i and eval(strs3) == 'IT':
-    #         count += 1
-    #         s = i.index(eval(strs3))
-    #         i[s] = 'Market'
-    #         print(i)
-    #     # elif eval(str2) in i:
-    #     #     count += 1
-    #     #     s = i.index(eval(str2))
-    #     #     i[s] = ''
-    # print('影响了%s条记录' % count)
-    #print(args)
+
     count = 0
-    li2 = ['id','name','age','phone','dept','enroll_date']
     li1 = args.strip().split(' ')
     s = li1.index('SET')
     strs = li1[s+1]
@@ -141,28 +195,25 @@ def update(args):
                 s5 = li2.index(new_str[0])
                 i[s5] = new_str[1]
                 print(i)
+    sava(list1)
     print('影响了%s条记录' % count)
 
 
-
+all_select()
 while True:
     keyword = input("用户请输入查询语句:")
-    all_select()
+
     if len(keyword) > 0:
         s = judge(keyword)
         if s[0] == 'find':
-            #print(s)
-            select(s)
+            select(keyword )
         elif s[0] == 'del':
-
             delete(s)
         elif s[0] == 'add':
-            count = 0
+
             value = add_stuff(keyword)
             add(value)
-            count += 1
-            print('影响了%s条记录' % count)
-            #print(value)
+
         elif s[0] == 'UPDATE':
 
             update(keyword)
